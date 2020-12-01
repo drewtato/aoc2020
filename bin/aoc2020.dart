@@ -1,5 +1,6 @@
-import 'package:aoc2020/aoc2020.dart' as aoc;
+import 'package:aoc2020/runner.dart' as runner;
 
-void main(List<String> arguments) {
-  print('Hello world: ${aoc.calculate()}!');
+void main(List<String> arguments) async {
+  // print('Use `dart test -n day01` to run day 1');
+  print(await runner.run(1));
 }
