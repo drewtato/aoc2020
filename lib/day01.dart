@@ -1,9 +1,7 @@
 List<String> run(String input) {
   var list = <int>[];
-  for (var item in input.split('\n')) {
-    if (item.isNotEmpty) {
-      list.add(int.parse(item));
-    }
+  for (var item in input.trim().split('\n')) {
+    list.add(int.parse(item));
   }
   return [run1(list), run2(list)];
 }
