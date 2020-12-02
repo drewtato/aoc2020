@@ -14,8 +14,8 @@ Future<List<String>> run(int day) async {
     switch (day) {
       case 1:
         return day01.run(input);
-      // case 2:
-      //   return day02.run(input);
+      case 2:
+        return day02.run(input);
       // case 3:
       //   return day03.run(input);
       // case 4:
