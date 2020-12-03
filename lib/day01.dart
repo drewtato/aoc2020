@@ -1,9 +1,12 @@
-List<String> run(String input) {
+import 'package:aoc2020/structures.dart';
+
+Solutions run(String input) {
   var list = <int>[];
   for (var item in input.trim().split('\n')) {
     list.add(int.parse(item));
   }
-  return [run1(list), run2(list)];
+
+  return Solutions.withParts(run1(list), run2(list));
 }
 
 String run1(List<int> list) {

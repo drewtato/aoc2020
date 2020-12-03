@@ -1,4 +1,6 @@
-List<String> run(String input) {
+import 'package:aoc2020/structures.dart';
+
+Solutions run(String input) {
   final reg = RegExp(r'^(\d+)-(\d+) (.): (\w+)$');
   var passes = [];
   for (var line in input.trim().split('\n')) {
@@ -42,5 +44,8 @@ List<String> run(String input) {
     }
   }
 
-  return ['$count1', '$count2'];
+  var sols = Solutions();
+  sols.part1 = '$count1';
+  sols.part2 = '$count2';
+  return sols;
 }
