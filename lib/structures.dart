@@ -18,6 +18,12 @@ class Solutions {
 
 class AOCException implements Exception {
   String reason = '';
+  static AOCException withReason(String reason) {
+    var exc = AOCException();
+    exc.reason = reason;
+    return exc;
+  }
+
   @override
   String toString() {
     return reason;

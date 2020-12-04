@@ -5,7 +5,7 @@ import 'package:aoc2020/structures.dart';
 import 'package:aoc2020/day01.dart' as day01;
 import 'package:aoc2020/day02.dart' as day02;
 import 'package:aoc2020/day03.dart' as day03;
-// import 'package:aoc2020/day04.dart' as day04;
+import 'package:aoc2020/day04.dart' as day04;
 
 Future<Solutions> run(int day) async {
   try {
@@ -17,14 +17,14 @@ Future<Solutions> run(int day) async {
         return day02.run(input);
       case 3:
         return day03.run(input);
-      // case 4:
-      //   return day04.run(input);
+      case 4:
+        return day04.run(input);
       default:
-        throw Exception('create that one in the runner');
+        throw AOCException.withReason('No case for this in the runner.');
     }
   } on AOCException catch (e) {
     print(e.toString());
-    rethrow;
+    return null;
   }
 }
 
@@ -38,8 +38,10 @@ Future<String> fetch_input(int day) async {
     final dir = path.current;
     final api = await File('$dir/API.txt').readAsString();
     final response = await http.get(url, headers: {'Cookie': 'session=$api'});
-    if (response.statusCode == 404) {
-      throw AOCException();
+    final code = response.statusCode;
+    if (response.statusCode >= 300 || response.statusCode < 200) {
+      throw AOCException.withReason(
+          'Status code $code, Try again when the puzzle unlocks.');
     }
     input = response.body;
     await File(inputPath).writeAsString(input);
