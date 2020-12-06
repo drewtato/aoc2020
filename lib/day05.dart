@@ -35,10 +35,10 @@ Solutions run(String input) {
   var sorted = boarding.map((e) => e[2]).toList();
   sorted.sort();
   var last = 0;
-  print(sorted);
+  // print(sorted);
   for (var item in sorted) {
     if (last == item - 2) {
-      print(item - 1);
+      sols.part2 = (item - 1).toString();
       break;
     }
     last = item;
