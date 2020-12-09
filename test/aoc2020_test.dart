@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:aoc2020/code.dart';
 import 'package:test/test.dart';
 import 'package:aoc2020/runner.dart' as runner;
 
@@ -11,4 +14,6 @@ void main() async {
     }
     test('day$formatted', () async => print(await runner.run(day)));
   }
+  test('code',
+      () async => {Code(await File('test/testcode.txt').readAsString())});
 }
