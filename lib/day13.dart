@@ -29,26 +29,22 @@ Solutions run(String input) {
   sols.part1 = '${minBus * min}';
 
   var minute = 1;
-  var currentBus = 0;
   // Should be all the past buses multiplied together.
   var multiplier = 1;
   // var lastMinute = 1;
-  while (true) {
-    if (buses.length == currentBus) {
-      break;
-    }
+  // var counter = 0;
+  for (var currentBus = 0; currentBus < buses.length; currentBus++) {
     if (buses[currentBus] == UNAVAILABLE) {
-      currentBus++;
       continue;
     }
     while ((minute + currentBus) % buses[currentBus] != 0) {
       minute += multiplier;
+      // counter++;
     }
     multiplier *= buses[currentBus];
     // print('Bus ${buses[currentBus]} works at $minute');
-    currentBus++;
   }
-
+  // print(counter);
   sols.part2 = '$minute';
   return sols;
 }
