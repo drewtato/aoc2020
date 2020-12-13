@@ -7,6 +7,7 @@ A dart project to solve all of Advent of Code 2020.
 ```text
       -------Part 1--------   -------Part 2--------
 Day       Time  Rank  Score       Time  Rank  Score
+ 13   00:11:23  2194      0   00:46:55  1053      0
  12   00:22:24  3180      0   00:49:57  3241      0
  11   00:43:28  3781      0   00:50:57  2287      0
  10   00:10:56  2724      0   00:30:15  1437      0
