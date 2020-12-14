@@ -15,6 +15,7 @@ import 'package:aoc2020/day10.dart' as day10;
 import 'package:aoc2020/day11.dart' as day11;
 import 'package:aoc2020/day12.dart' as day12;
 import 'package:aoc2020/day13.dart' as day13;
+import 'package:aoc2020/day14.dart' as day14;
 
 Future<Solutions> run(int day) async {
   try {
@@ -46,6 +47,8 @@ Future<Solutions> run(int day) async {
         return day12.run(input);
       case 13:
         return day13.run(input);
+      case 14:
+        return day14.run(input);
       default:
         throw AOCException.withReason('No case for this in the runner.');
     }
