@@ -18,6 +18,15 @@ import 'package:aoc2020/day13.dart' as day13;
 import 'package:aoc2020/day14.dart' as day14;
 import 'package:aoc2020/day15.dart' as day15;
 import 'package:aoc2020/day16.dart' as day16;
+import 'package:aoc2020/day17.dart' as day17;
+import 'package:aoc2020/day18.dart' as day18;
+import 'package:aoc2020/day19.dart' as day19;
+import 'package:aoc2020/day20.dart' as day20;
+import 'package:aoc2020/day21.dart' as day21;
+import 'package:aoc2020/day22.dart' as day22;
+import 'package:aoc2020/day23.dart' as day23;
+import 'package:aoc2020/day24.dart' as day24;
+import 'package:aoc2020/day25.dart' as day25;
 
 Future<Solutions> run(int day) async {
   try {
@@ -55,6 +64,24 @@ Future<Solutions> run(int day) async {
         return day15.run(input);
       case 16:
         return day16.run(input);
+      case 17:
+        return day17.run(input);
+      case 18:
+        return day18.run(input);
+      case 19:
+        return day19.run(input);
+      case 20:
+        return day20.run(input);
+      case 21:
+        return day21.run(input);
+      case 22:
+        return day22.run(input);
+      case 23:
+        return day23.run(input);
+      case 24:
+        return day24.run(input);
+      case 25:
+        return day25.run(input);
       default:
         throw AOCException.withReason('No case for this in the runner.');
     }
