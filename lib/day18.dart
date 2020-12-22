@@ -147,5 +147,6 @@ class Token {
         return ')';
         break;
     }
+    return null.toString();
   }
 }
