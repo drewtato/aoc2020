@@ -38,6 +38,15 @@ Solutions run(String input) {
   // print(messages);
 
   final humungo = RegExp('^' + humungoRegex(rules, 0) + '\$');
+  rules[11].groups = [
+    [42, 31],
+    [42, 42, 31, 31],
+    [42, 42, 42, 31, 31, 31],
+    [42, 42, 42, 42, 31, 31, 31, 31],
+    [42, 42, 42, 42, 42, 31, 31, 31, 31, 31],
+    // [42, 42, 42, 42, 42, 42, 31, 31, 31, 31, 31, 31],
+  ];
+  final humungo2 = RegExp('^' + humungoRegex2(rules, 0).pattern + '\$');
 
   // print(humungo2);
   // print(eleven);
@@ -48,16 +57,8 @@ Solutions run(String input) {
     if (humungo.hasMatch(message)) {
       count1++;
     }
-
-    for (var depth = 1;; depth++) {
-      var m = humungoRegex2(rules, 0, depth).firstMatch(message);
-      if (m == null) {
-        break;
-      }
-      if (m.namedGroup('eleven') == null) {
-        count2++;
-        break;
-      }
+    if (humungo2.hasMatch(message)) {
+      count2++;
     }
   }
 
@@ -71,32 +72,21 @@ Solutions run(String input) {
   return sols;
 }
 
-var memoHumungo2 = <int, Map<int, RegExp>>{};
-RegExp humungoRegex2(Map<int, Rule> rules, int start, int depth) {
+var memoHumungo2 = <int, RegExp>{};
+RegExp humungoRegex2(Map<int, Rule> rules, int start) {
   if (memoHumungo2.containsKey(start)) {
-    if (memoHumungo2[start].containsKey(depth)) {
-      return memoHumungo2[start][depth];
-    }
-  } else {
-    memoHumungo2[start] = {};
+    return memoHumungo2[start];
   }
 
   var reg = '';
   if (rules[start].type == CHAR) {
     reg += rules[start].character;
   } else if (start == 8) {
-    reg += '(?:${humungoRegex2(rules, 42, 1).pattern})+';
-  } else if (start == 11) {
-    reg += '(?<eleven>.+)?';
-    for (var i = 0; i < depth; i++) {
-      reg = humungoRegex2(rules, 42, 1).pattern +
-          reg +
-          humungoRegex2(rules, 31, 1).pattern;
-    }
+    reg += '(?:${humungoRegex2(rules, 42).pattern})+';
   } else {
     for (var group in rules[start].groups) {
       for (var n in group) {
-        reg += humungoRegex2(rules, n, depth).pattern;
+        reg += humungoRegex2(rules, n).pattern;
       }
       reg += '|';
     }
@@ -107,8 +97,8 @@ RegExp humungoRegex2(Map<int, Rule> rules, int start, int depth) {
     }
   }
 
-  memoHumungo2[start][depth] = RegExp(reg);
-  return memoHumungo2[start][depth];
+  memoHumungo2[start] = RegExp(reg);
+  return memoHumungo2[start];
 }
 
 var memoHumungo = <int, String>{};
