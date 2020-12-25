@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:aoc2020/structures.dart';
 
 const SEA_MONSTER =
@@ -118,14 +120,89 @@ Solutions run(String input) {
     // print('row ${tileMap.length} done');
   } while ((next = tileMap.last[0].down(adjacents)) != null);
 
-  for (var row in tileMap) {
-    print(row);
-  }
   // Add all tiles to map according to position and orientation
+  final size = tiles.values.first.length;
+  var pixelMap = <List<int>>[];
+  for (var tileY = 0; tileY < tileMap.length; tileY++) {
+    var tileRow = tileMap[tileY];
+    for (var i = 0; i < size - 2; i++) {
+      pixelMap.add([]);
+    }
+    for (var tile in tileRow) {
+      final pixels = tile.pixels(tiles);
+      for (var pixRow = 0; pixRow < size - 2; pixRow++) {
+        pixelMap[pixRow + (size - 2) * tileY]
+            .addAll(pixels[pixRow + 1].skip(1).take(size - 2));
+      }
+    }
+  }
+  // pixelMap = rotatePix(pixelMap);
+  // pixelMap = flipPix(pixelMap);
+  // for (var row in pixelMap) {
+  //   print(row.map((e) => e == 1 ? '#' : ' ').join());
+  // }
+
+  // Compute sea monster set
+  final seaMonsterList = SEA_MONSTER
+      .split('\n')
+      .map((e) => e.split('').map((e) => e == '#' ? 1 : 0).toList())
+      .toList();
+  var seaMonsterSet = <Point>[];
+  for (var y = 0; y < seaMonsterList.length; y++) {
+    for (var x = 0; x < seaMonsterList[y].length; x++) {
+      if (seaMonsterList[y][x] == 1) {
+        seaMonsterSet.add(Point(y, x));
+      }
+    }
+  }
+  var monsterLength = seaMonsterSet.fold<int>(0, (prev, e) => max(prev, e.x));
+  var monsterHeight = seaMonsterSet.fold<int>(0, (prev, e) => max(prev, e.y));
+
   // Rotate/flip map until sea monsters are spotted
-  // Count sea monsters
+  var monsters = 0;
+  for (var i = 0; i < 2; i++) {
+    for (var i = 0; i < 4; i++) {
+      // Count sea monsters
+      monsters = findSeaMonsters(
+          pixelMap, seaMonsterSet, monsterLength, monsterHeight);
+      if (monsters > 0) {
+        break;
+      }
+      pixelMap = rotatePix(pixelMap);
+    }
+    if (monsters > 0) {
+      break;
+    }
+    pixelMap = flipPix(pixelMap);
+  }
+
+  var notMonsters = pixelMap.fold<int>(
+      0, (prev, e) => prev + e.fold<int>(0, (prev, e) => prev + e));
+  sols.part2 = (notMonsters - (monsters * seaMonsterSet.length)).toString();
 
   return sols;
+}
+
+int findSeaMonsters(List<List<int>> pix, List<Point> monster, int monsterLength,
+    int monsterHeight) {
+  var monsters = 0;
+  for (var bigY = 0; bigY < pix.length - monsterHeight + 1; bigY++) {
+    for (var bigX = 0; bigX < pix.first.length - monsterLength + 1; bigX++) {
+      var found = true;
+      for (var point in monster) {
+        if (pix[point.y + bigY][point.x + bigX] != 1) {
+          found = false;
+          break;
+        }
+      }
+      if (found) {
+        // print(bigX);
+        // print(bigY);
+        monsters++;
+      }
+    }
+  }
+  return monsters;
 }
 
 int listToInteger(Iterable<int> list) {
@@ -171,7 +248,7 @@ class Orientation {
     rotation = (rotation - times) % 4;
   }
 
-  int toggleFlip() => flip = (flip + 1) % 4;
+  int toggleFlip() => flip = (flip + 1) % 2;
 
   Orientation.from(Orientation ori) : this(ori.rotation, ori.flip);
 
@@ -195,7 +272,7 @@ class TileOrientation {
   }
 
   @override
-  String toString() => '($tile$ori)';
+  String toString() => '$tile$ori';
 
   TileOrientation.from(TileOrientation tior)
       : this(tior.tile, Orientation.from(tior.ori));
@@ -207,6 +284,7 @@ class TileOrientation {
     final rightOri = Orientation(
         ori.flip == 0 ? (ori.rotation + 1) % 4 : (ori.rotation - 1) % 4,
         ori.flip);
+    rightOri.toggleFlip();
     // print(rightOri);
     var otherEntry = thisEntry[rightOri];
     if (otherEntry == null) {
@@ -218,17 +296,76 @@ class TileOrientation {
     } else {
       rawOther.ori.rotateClock(1);
     }
+    // rawOther.ori.toggleFlip();
     // print(rawOther.ori);
     return rawOther;
   }
 
   TileOrientation down(Map<int, Map<Orientation, TileOrientation>> allTiles) {
     final thisEntry = allTiles[tile];
-    final downOri = Orientation((ori.rotation + 2) % 4, ori.flip);
+    final downOri = Orientation.from(ori);
+    downOri.rotateClock(2);
+    downOri.toggleFlip();
     var otherEntry = thisEntry[downOri];
     if (otherEntry == null) {
       return null;
     }
     return TileOrientation.from(otherEntry);
   }
+
+  List<List<int>> pixels(Map<int, List<List<int>>> tiles) {
+    final tileData = tiles[tile];
+    var pix = <List<int>>[];
+    switch (ori.rotation) {
+      case 0:
+        pix = tileData.map((e) => e.toList()).toList();
+        break;
+      case 1:
+        for (var y = tileData.first.length - 1; y >= 0; y--) {
+          pix.add([]);
+          for (var x = 0; x < tileData.length; x++) {
+            pix.last.add(tileData[x][y]);
+          }
+        }
+        break;
+      case 2:
+        for (var y = tileData.first.length - 1; y >= 0; y--) {
+          pix.add([]);
+          for (var x = tileData.length - 1; x >= 0; x--) {
+            pix.last.add(tileData[y][x]);
+          }
+        }
+        break;
+      case 3:
+        for (var y = 0; y < tileData.first.length; y++) {
+          pix.add([]);
+          for (var x = tileData.length - 1; x >= 0; x--) {
+            pix.last.add(tileData[x][y]);
+          }
+        }
+        break;
+    }
+    if (ori.flip == 1) {
+      var old = pix;
+      pix = [];
+      for (var row in old) {
+        pix.add(row.reversed.toList());
+      }
+    }
+    return pix;
+  }
+}
+
+List<List<int>> flipPix(List<List<int>> pix) =>
+    pix.map((e) => e.reversed.toList()).toList();
+
+List<List<int>> rotatePix(List<List<int>> pix) {
+  var newPix = <List<int>>[];
+  for (var x = 0; x < pix.first.length; x++) {
+    newPix.add([]);
+    for (var y = pix.length - 1; y >= 0; y--) {
+      newPix.last.add(pix[y][x]);
+    }
+  }
+  return newPix;
 }
