@@ -1,6 +1,7 @@
-import 'dart:math' as math;
-
 import 'package:aoc2020/structures.dart';
+
+const SEA_MONSTER =
+    '                  # \n#    ##    ##    ###\n #  #  #  #  #  #   \n';
 
 Solutions run(String input) {
   var sols = Solutions();
@@ -26,177 +27,108 @@ Solutions run(String input) {
   //   print('');
   // }
 
-  // Values are [[tile number, orientation], ...]
-  // orientation is
-  //    1,2: top
-  //    3,4: right
-  //    5,6: bottom
-  //    7,8: left
-  // Even numbers are reverse direction.
-  // Orientations on tiles are which direction the top is pointing.
-  var edges = <int, List<List<int>>>{};
-  var reverseEdges = <int, List<int>>{};
+  // edgeInteger: {tile number: orientation, ...}
+  var edgeInts = DefaultMap<int, Map<int, Orientation>>(() => {});
+  // tile number: {edgeInteger: orientation, ...}
+  var reverseEdgeInts = DefaultMap<int, Map<int, Orientation>>(() => {});
   for (var tile in tiles.entries) {
     final top = tile.value.first;
-    final left =
-        tile.value.fold(<int>[], (prev, e) => prev + [e.first]) as List<int>;
-    final right =
-        tile.value.fold(<int>[], (prev, e) => prev + [e.last]) as List<int>;
-    final bottom = tile.value.last;
+    final left = tile.value.reversed.fold<List<int>>(<int>[], (prev, e) {
+      prev.add(e.first);
+      return prev;
+    });
+    final right = tile.value.fold<List<int>>(<int>[], (prev, e) {
+      prev.add(e.last);
+      return prev;
+    });
+    final bottom = tile.value.last.reversed.toList();
 
-    reverseEdges[tile.key] = [];
-    for (var sequence in [
-      [
-        top,
-        [1]
-      ],
-      [
-        right,
-        [3]
-      ],
-      [
-        bottom,
-        [5]
-      ],
-      [
-        left,
-        [7]
-      ]
-    ]) {
-      for (var seq in [
-        [
-          sequence[0],
-          [0]
-        ],
-        [
-          sequence[0].reversed,
-          [1]
-        ]
-      ]) {
-        final numeric = listToNumeric(seq[0]);
-        if (!edges.containsKey(numeric)) {
-          edges[numeric] = [];
-        }
-        edges[numeric].add([tile.key, sequence[1][0] + seq[1].first]);
-        reverseEdges[tile.key].add(numeric);
-      }
+    // Map out edges
+    final edges = [top, right, bottom, left];
+    for (var i = 0; i < edges.length; i++) {
+      final edgeInt = listToInteger(edges[i]);
+      edgeInts[edgeInt][tile.key] = Orientation(i, 0);
+      reverseEdgeInts[tile.key][edgeInt] = Orientation(i, 0);
+      final edgeIntRev = listToInteger(edges[i].reversed);
+      edgeInts[edgeIntRev][tile.key] = Orientation(i, 1);
+      reverseEdgeInts[tile.key][edgeIntRev] = Orientation(i, 1);
     }
   }
 
-  // print(edges.entries.first);
-  // print(reverseEdges[edges.values.first[0][0]]);
-  // print(tiles.length);
+  // print(edgeInts);
+  // print(reverseEdgeInts);
 
-  // [
-  //   [[tile, orientation], [tile, orientation], ...],
-  //   [[tile, orientation], [tile, orientation], ...],
+  // Find connections between edges
+  // tile number: {
+  //   first tile's side: second tile's TileOrientation,
   //   ...
-  // ]
-  var missingEdge = <int, int>{};
-  for (var edge in edges.entries) {
-    if (edge.value.length == 1) {
-      if (!missingEdge.containsKey(edge.value[0][0])) {
-        missingEdge[edge.value[0][0]] = 0;
-      }
-      missingEdge[edge.value[0][0]]++;
-    }
-  }
-  final corners = missingEdge.entries.where((e) => e.value == 4).toList();
-  // print(corners);
-  sols.part1 = corners
-      .map((e) => e.key)
-      .fold(1, (previousValue, element) => previousValue * element)
-      .toString();
-
-  // Map from tile number to [[adjacent tile, side, thisSide], ...]
-  var connections = <int, List<List<int>>>{};
-  for (var entry in edges.entries) {
-    if (entry.value.length == 1) {
-      continue;
-    }
-    final first = entry.value[0];
-    final second = entry.value[1];
-    if (!connections.containsKey(first[0])) {
-      connections[first[0]] = [];
-    }
-    if (!connections.containsKey(second[0])) {
-      connections[second[0]] = [];
-    }
-    connections[first[0]].add([second[0], second[1], first[1]]);
-    connections[second[0]].add([first[0], first[1], second[1]]);
-  }
-
-  // print(connections);
-
-  final firstTile = connections.keys.first;
-  // Y-X map of [tile number, tile orientation]
-  var map = <int, Map<int, List<int>>>{};
-  // tile number
-  var used = {firstTile};
-  // tile number: [y, x, orientation]
-  var next = {
-    firstTile: [0, 0, 1]
-  };
-  while (next.isNotEmpty) {
-    final addTile = next.keys.first;
-    final meta = next.remove(addTile);
-    if (!map.containsKey(meta[0])) {
-      map[meta[0]] = {};
-    }
-    map[meta[0]][meta[1]] = [addTile, meta[2]];
-    for (var conn in connections[addTile]) {
-      if (!used.add(conn[0])) {
-        continue;
-      }
-      final actualSide = tileAndSideAdjustment(meta[2], conn[2]);
-      final newOrientation = startingAndMatchedAdjustment(actualSide, conn[1]);
-      var y = meta[0];
-      var x = meta[1];
-      switch ((actualSide - 1) ~/ 2) {
-        case 0:
-          y--;
+  // }
+  var adjacents = DefaultMap<int, Map<Orientation, TileOrientation>>(() => {});
+  for (var tile in reverseEdgeInts.entries) {
+    var tileAdjacents = adjacents[tile.key];
+    for (var edge in tile.value.entries) {
+      final firstOri = edge.value;
+      for (var otherTile in edgeInts[edge.key].entries) {
+        if (otherTile.key != tile.key) {
+          tileAdjacents[firstOri] =
+              TileOrientation(otherTile.key, otherTile.value);
           break;
-        case 1:
-          x++;
-          break;
-        case 2:
-          y++;
-          break;
-        case 3:
-          x--;
-          break;
-        default:
-          throw Exception('Invalid orientation: $actualSide');
-      }
-      next[conn[0]] = [y, x, newOrientation];
-    }
-  }
-
-  var finalMap = <List<int>>[];
-  var minY = map.keys.fold(0, math.min);
-  var maxY = map.keys.fold(0, math.max);
-  var minX = map.values.map((e) => e.keys.fold(0, math.min)).fold(0, math.min);
-  var maxX = map.values.map((e) => e.keys.fold(0, math.max)).fold(0, math.max);
-
-  for (var y = minY; y <= maxY; y++) {
-    finalMap.add([]);
-    for (var x = minX; x <= maxX; x++) {
-      try {
-        finalMap.last.add(map[y][x][0]);
-      } on NoSuchMethodError {
-        finalMap.last.add(9999);
+        }
       }
     }
   }
 
-  for (var line in finalMap) {
-    print(line);
+  // print(adjacents);
+  // return sols;
+
+  // Find all corners for part 1, take one corner for starting part 2
+  final corners = adjacents.entries.where((e) => e.value.length == 4).toList();
+  sols.part1 = corners.fold(1, (prev, e) => prev * e.key).toString();
+
+  final topLeftCorner = corners.first;
+
+  // Rotate corner so right and bottom have connections
+  var cornerRotation = 0;
+  var activeSides = [
+    Orientation.from(topLeftCorner.value.keys.where((e) => e.flip == 0).first),
+    Orientation.from(topLeftCorner.value.keys.where((e) => e.flip == 0).last)
+  ];
+  activeSides.sort((a, b) => a.rotation - b.rotation);
+  while (!(activeSides[0].rotation == 1 && activeSides[1].rotation == 2)) {
+    // print('rotating');
+    cornerRotation++;
+    activeSides[0].rotateCounter();
+    activeSides[1].rotateCounter();
   }
+
+  // print(topLeftCorner);
+  // print(cornerRotation);
+
+  // Map of placed tiles
+  var tileMap = <List<TileOrientation>>[];
+  var next = TileOrientation(topLeftCorner.key, Orientation(cornerRotation, 0));
+  do {
+    // Find right side connections until no more
+    // print('adding row');
+    tileMap.add([next]);
+    while ((next = next.right(adjacents)) != null) {
+      tileMap.last.add(next);
+    }
+    // Go down one row and repeat
+    // print('row ${tileMap.length} done');
+  } while ((next = tileMap.last[0].down(adjacents)) != null);
+
+  for (var row in tileMap) {
+    print(row);
+  }
+  // Add all tiles to map according to position and orientation
+  // Rotate/flip map until sea monsters are spotted
+  // Count sea monsters
 
   return sols;
 }
 
-int listToNumeric(Iterable<int> list) {
+int listToInteger(Iterable<int> list) {
   var n = 0;
   for (var i in list) {
     n <<= 1;
@@ -205,28 +137,98 @@ int listToNumeric(Iterable<int> list) {
   return n;
 }
 
-int tileAndSideAdjustment(int tile, int side) {
-  return [
-    [1, 2, 3, 4, 5, 6, 7, 8],
-    [2, 1, 4, 3, 6, 5, 8, 7],
-    [3, 8, 5, 2, 7, 4, 1, 6],
-    [4, 7, 6, 1, 8, 3, 2, 5],
-    [5, 6, 7, 8, 1, 2, 3, 4],
-    [6, 5, 8, 7, 2, 1, 4, 3],
-    [7, 4, 1, 6, 3, 8, 5, 2],
-    [8, 3, 2, 5, 4, 7, 6, 1]
-  ][side - 1][tile - 1];
+class Point {
+  int y, x;
+
+  Point(int y, int x) {
+    this.y = y;
+    this.x = x;
+  }
+
+  @override
+  int get hashCode => y * 65536 + x;
+  @override
+  bool operator ==(Object other) =>
+      other is Point && other.y == y && other.x == x;
+
+  @override
+  String toString() => '($y, $x)';
 }
 
-int startingAndMatchedAdjustment(int starting, int matched) {
-  return [
-    [6, 5, 8, 7, 2, 1, 4, 3],
-    [5, 6, 7, 8, 1, 2, 3, 4],
-    [8, 3, 2, 5, 4, 7, 6, 1],
-    [3, 8, 5, 2, 7, 4, 1, 6],
-    [2, 1, 4, 3, 6, 5, 8, 7],
-    [1, 2, 3, 4, 5, 6, 7, 8],
-    [4, 7, 6, 1, 8, 3, 2, 5],
-    [7, 4, 1, 6, 3, 8, 5, 2],
-  ][matched - 1][starting - 1];
+class Orientation {
+  int rotation, flip;
+
+  Orientation(int r, int f) {
+    rotation = r;
+    flip = f;
+  }
+
+  void rotateClock([int times = 1]) {
+    rotation = (rotation + times) % 4;
+  }
+
+  void rotateCounter([int times = 1]) {
+    rotation = (rotation - times) % 4;
+  }
+
+  int toggleFlip() => flip = (flip + 1) % 4;
+
+  Orientation.from(Orientation ori) : this(ori.rotation, ori.flip);
+
+  @override
+  int get hashCode => rotation * 2 + flip;
+  @override
+  bool operator ==(Object other) =>
+      other is Orientation && other.rotation == rotation && other.flip == flip;
+
+  @override
+  String toString() => '<$rotation, $flip>';
+}
+
+class TileOrientation {
+  int tile;
+  Orientation ori;
+
+  TileOrientation(int t, Orientation o) {
+    tile = t;
+    ori = o;
+  }
+
+  @override
+  String toString() => '($tile$ori)';
+
+  TileOrientation.from(TileOrientation tior)
+      : this(tior.tile, Orientation.from(tior.ori));
+
+  TileOrientation right(Map<int, Map<Orientation, TileOrientation>> allTiles) {
+    final thisEntry = allTiles[tile];
+    // print(thisEntry);
+    // print(ori);
+    final rightOri = Orientation(
+        ori.flip == 0 ? (ori.rotation + 1) % 4 : (ori.rotation - 1) % 4,
+        ori.flip);
+    // print(rightOri);
+    var otherEntry = thisEntry[rightOri];
+    if (otherEntry == null) {
+      return null;
+    }
+    var rawOther = TileOrientation.from(otherEntry);
+    if (rawOther.ori.flip == 1) {
+      rawOther.ori.rotateCounter(1);
+    } else {
+      rawOther.ori.rotateClock(1);
+    }
+    // print(rawOther.ori);
+    return rawOther;
+  }
+
+  TileOrientation down(Map<int, Map<Orientation, TileOrientation>> allTiles) {
+    final thisEntry = allTiles[tile];
+    final downOri = Orientation((ori.rotation + 2) % 4, ori.flip);
+    var otherEntry = thisEntry[downOri];
+    if (otherEntry == null) {
+      return null;
+    }
+    return TileOrientation.from(otherEntry);
+  }
 }
