@@ -3,147 +3,120 @@ import 'package:aoc2020/structures.dart';
 Solutions run(String input) {
   var sols = Solutions();
 
-  final parts = input.trim().split('\n\n');
-  final rulePat = RegExp(r'^(\d+): (.+)$');
-  final ruleEndPat = RegExp(r'^(?:"(\w)"|([\d| ]+))$');
+  final messagePat = RegExp(r'^(?:a|b)+$');
+  final rulesPat = RegExp(r'^(\d+): (.+)$');
+  final letterPat = RegExp(r'^"(\w)"$');
 
-  var rules = <int, Rule>{};
-  for (var line in parts[0].split('\n')) {
-    final ruleMatch = rulePat.firstMatch(line);
-    final ruleNumber = int.parse(ruleMatch.group(1));
-    final ruleEnd = ruleEndPat.firstMatch(ruleMatch.group(2));
-    if (ruleEnd == null) {
-      print(line);
+  var ruleMap = <int, Rule>{};
+  var messageList = <String>[];
+
+  for (var line in input.trim().split('\n').where((e) => e.isNotEmpty)) {
+    if (messagePat.hasMatch(line)) {
+      messageList.add(line);
+      continue;
     }
+
     var rule = Rule();
-    rule.type = CHAR;
-    if (ruleEnd.group(1) != null) {
-      rule.character = ruleEnd.group(1);
-    } else {
-      rule.type++;
-      final allNumbers = ruleEnd.group(2).split(' | ');
-      rule.groups = [];
-      for (var group in allNumbers) {
-        rule.groups.add([]);
-        for (var n in group.split(' ')) {
-          rule.groups.last.add(int.parse(n));
-        }
-      }
+    final m = rulesPat.firstMatch(line);
+    rule.name = int.parse(m.group(1));
+
+    ruleMap[rule.name] = rule;
+    rule.ruleMap = ruleMap;
+
+    final letterMatch = letterPat.firstMatch(m.group(2));
+    if (letterMatch != null) {
+      rule.letter = letterMatch.group(1);
+      rule.type = RuleType.letter;
+      continue;
     }
-    rules[ruleNumber] = rule;
-  }
-  // print(rules[0]);
 
-  final messages = parts[1].split('\n');
-  // print(messages);
-
-  final humungo = RegExp('^' + humungoRegex(rules, 0) + '\$');
-  rules[11].groups = [
-    [42, 31],
-    [42, 42, 31, 31],
-    [42, 42, 42, 31, 31, 31],
-    [42, 42, 42, 42, 31, 31, 31, 31],
-    [42, 42, 42, 42, 42, 31, 31, 31, 31, 31],
-    // [42, 42, 42, 42, 42, 42, 31, 31, 31, 31, 31, 31],
-  ];
-  final humungo2 = RegExp('^' + humungoRegex2(rules, 0).pattern + '\$');
-
-  // print(humungo2);
-  // print(eleven);
-  var count1 = 0;
-  var count2 = 0;
-  for (var message in messages) {
-    // print('Matching $message');
-    if (humungo.hasMatch(message)) {
-      count1++;
-    }
-    if (humungo2.hasMatch(message)) {
-      count2++;
+    rule.type = RuleType.subrules;
+    rule.subRules = [];
+    for (var subRule in m.group(2).split(' | ')) {
+      var subRulePart = subRule.split(' ').map((e) => int.parse(e)).toList();
+      rule.subRules.add(subRulePart);
     }
   }
 
-  // for (var i = 0; i < 5; i++) {
-  //   print('$i: ${humungoRegex2(rules, 0, i).pattern}');
+  // for (var rule in ruleMap.values) {
+  //   print(rule);
   // }
 
-  sols.part1 = '$count1';
-  sols.part2 = '$count2';
+  var matches = 0;
+  final zero = ruleMap[0];
+  for (var message in messageList) {
+    if (zero.hasMatch(message)) {
+      matches++;
+    }
+  }
+
+  sols.part1 = '$matches';
+
+  var eight = Rule();
+  eight.name = 8;
+  eight.type = RuleType.subrules;
+  eight.subRules = [
+    [42],
+    [42, 8]
+  ];
+  eight.ruleMap = ruleMap;
+  ruleMap[8] = eight;
+
+  var eleven = Rule();
+  eleven.name = 11;
+  eleven.type = RuleType.subrules;
+  eleven.subRules = [
+    [42, 31],
+    [42, 11, 31]
+  ];
+  eleven.ruleMap = ruleMap;
+  ruleMap[11] = eleven;
+
+  matches = 0;
+  for (var message in messageList) {
+    if (zero.hasMatch(message)) {
+      matches++;
+    }
+  }
+
+  sols.part2 = '$matches';
 
   return sols;
 }
 
-var memoHumungo2 = <int, RegExp>{};
-RegExp humungoRegex2(Map<int, Rule> rules, int start) {
-  if (memoHumungo2.containsKey(start)) {
-    return memoHumungo2[start];
-  }
-
-  var reg = '';
-  if (rules[start].type == CHAR) {
-    reg += rules[start].character;
-  } else if (start == 8) {
-    reg += '(?:${humungoRegex2(rules, 42).pattern})+';
-  } else {
-    for (var group in rules[start].groups) {
-      for (var n in group) {
-        reg += humungoRegex2(rules, n).pattern;
-      }
-      reg += '|';
-    }
-    if (rules[start].groups.length > 1) {
-      reg = '(?:' + reg.substring(0, reg.length - 1) + ')';
-    } else {
-      reg = reg.substring(0, reg.length - 1);
-    }
-  }
-
-  memoHumungo2[start] = RegExp(reg);
-  return memoHumungo2[start];
-}
-
-var memoHumungo = <int, String>{};
-String humungoRegex(Map<int, Rule> rules, int start) {
-  if (memoHumungo.containsKey(start)) {
-    return memoHumungo[start];
-  }
-
-  var reg = '';
-  if (rules[start].type == CHAR) {
-    reg += rules[start].character;
-  } else {
-    reg += '(?:';
-    for (var group in rules[start].groups) {
-      for (var n in group) {
-        reg += humungoRegex(rules, n);
-      }
-      reg += '|';
-    }
-    reg = reg.substring(0, reg.length - 1) + ')';
-  }
-
-  memoHumungo[start] = reg;
-  return memoHumungo[start];
-}
-
-const CHAR = 1;
-const GROUPS = 2;
+enum RuleType { letter, subrules }
 
 class Rule {
-  int type;
-  List<List<int>> groups;
-  String character;
+  int name;
+  RuleType type;
+  String letter;
+  List<List<int>> subRules;
+  Map<int, Rule> ruleMap;
+
+  bool hasMatch(String message) {
+    return hasPartialMatch(message, 0).contains(message.length);
+  }
+
+  Iterable<int> hasPartialMatch(String message, int start) sync* {
+    if (type == RuleType.letter) {
+      if (message.length > start && message[start] == letter) {
+        yield start + 1;
+      }
+      return;
+    }
+
+    for (var sub in subRules) {
+      Iterable<int> possibleLengths = [start];
+      for (var r in sub) {
+        possibleLengths = possibleLengths
+            .expand((e) => ruleMap[r].hasPartialMatch(message, e));
+      }
+      yield* possibleLengths;
+    }
+  }
 
   @override
   String toString() {
-    switch (type) {
-      case CHAR:
-        return '"$character"';
-        break;
-      case GROUPS:
-        return groups.toString();
-        break;
-      default:
-        return 'none';
-    }
+    return '$name: ${type == RuleType.letter ? letter : subRules}';
   }
 }

@@ -83,7 +83,7 @@ Future<Solutions> run(int day) async {
       case 25:
         return day25.run(input);
       default:
-        throw AOCException.withReason('No case for this in the runner.');
+        return null;
     }
   } on AOCException catch (e) {
     print(e.toString());
