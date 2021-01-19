@@ -1,6 +1,8 @@
 # Dart AoC 2020
 
-A dart project to solve all of Advent of Code 2020.
+A Dart project to solve all of Advent of Code 2020. I was able to finish the whole thing not long after day 25.
+
+The most polished problem is day 19. It uses `yield*`, which is my favorite feature of Dart. Overall, I would give Dart 5/10 stars. It's not amazing but it gets the job done.
 
 ## Times
 
